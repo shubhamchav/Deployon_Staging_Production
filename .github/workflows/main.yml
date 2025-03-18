@@ -14,26 +14,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Package HTML
-        run: |
-          echo "Preparing HTML file for deployment..."
-          mkdir -p deploy
-          cp index.html deploy/
-
   DeployDev:
-    name: Deploy to Dev
+    name: Deploy to GitHub Pages (Dev)
     if: github.event_name == 'pull_request'
     needs: [Build]
     runs-on: ubuntu-latest
     environment:
       name: Development
-      url: 'http://localhost:8000/index.html'
+      url: 'https://shubhamchav.github.io/Deployon_Staging_Production/index.html'
     steps:
-      - name: Development Deployment
-        run: echo "Development environment - No real deployment needed."
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .  # Root directory where index.html is located
 
   DeployStaging:
-    name: Deploy to Staging
+    name: Deploy to Staging (EC2)
     if: github.event.ref == 'refs/heads/master'
     needs: [Build]
     runs-on: ubuntu-latest
@@ -47,27 +44,13 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Check & Prepare Staging Server (Nginx)
-        run: |
-          echo "Checking prerequisites on Staging server..."
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_STAGING }} << 'EOF'
-          sudo apt update -y || sudo yum update -y
-          sudo apt install -y nginx || sudo yum install -y nginx
-          sudo systemctl enable nginx
-          sudo systemctl start nginx
-          sudo mkdir -p /usr/share/nginx/html
-          sudo chmod -R 755 /usr/share/nginx/html
-          echo "Staging server is ready."
-          EOF
-
       - name: Deploy to Staging Server
         run: |
-          echo "Deploying to Staging..."
-          scp -o StrictHostKeyChecking=no -r deploy/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_STAGING }}:/usr/share/nginx/html/
+          scp -o StrictHostKeyChecking=no index.html ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_STAGING }}:/usr/share/nginx/html/
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_STAGING }} "sudo systemctl restart nginx"
 
   DeployProd:
-    name: Deploy to Production
+    name: Deploy to Production (EC2)
     needs: [DeployStaging]
     runs-on: ubuntu-latest
     environment:
@@ -80,21 +63,7 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Check & Prepare Production Server (Nginx)
-        run: |
-          echo "Checking prerequisites on Production server..."
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }} << 'EOF'
-          sudo apt update -y || sudo yum update -y
-          sudo apt install -y nginx || sudo yum install -y nginx
-          sudo systemctl enable nginx
-          sudo systemctl start nginx
-          sudo mkdir -p /usr/share/nginx/html
-          sudo chmod -R 755 /usr/share/nginx/html
-          echo "Production server is ready."
-          EOF
-
       - name: Deploy to Production Server
         run: |
-          echo "Deploying to Production..."
-          scp -o StrictHostKeyChecking=no -r deploy/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }}:/usr/share/nginx/html/
+          scp -o StrictHostKeyChecking=no index.html ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }}:/usr/share/nginx/html/
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }} "sudo systemctl restart nginx"
