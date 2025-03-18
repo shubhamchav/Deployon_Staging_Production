@@ -1,69 +1,80 @@
-name: CI + CD
-
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-  workflow_dispatch:
-
-jobs:
-  Build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-  DeployDev:
-    name: Deploy to GitHub Pages (Dev)
-    if: github.event_name == 'pull_request'
-    needs: [Build]
-    runs-on: ubuntu-latest
-    environment:
-      name: Development
-      url: 'https://shubhamchav.github.io/Deployon_Staging_Production/index.html'
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .  # Root directory where index.html is located
-
-  DeployStaging:
-    name: Deploy to Staging (EC2)
-    if: github.event.ref == 'refs/heads/master'
-    needs: [Build]
-    runs-on: ubuntu-latest
-    environment:
-      name: Staging
-      url: 'http://<STAGING_EC2_PUBLIC_IP>/index.html'
-    steps:
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      - name: Deploy to Staging Server
-        run: |
-          scp -o StrictHostKeyChecking=no index.html ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_STAGING }}:/usr/share/nginx/html/
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_STAGING }} "sudo systemctl restart nginx"
-
-  DeployProd:
-    name: Deploy to Production (EC2)
-    needs: [DeployStaging]
-    runs-on: ubuntu-latest
-    environment:
-      name: Production
-      url: 'http://<PRODUCTION_EC2_PUBLIC_IP>/index.html'
-    steps:
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      - name: Deploy to Production Server
-        run: |
-          scp -o StrictHostKeyChecking=no index.html ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }}:/usr/share/nginx/html/
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }} "sudo systemctl restart nginx"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .login-container h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        .input-group {
+            margin: 1rem 0;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .login-btn:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+    </div>
+</body>
+</html>
