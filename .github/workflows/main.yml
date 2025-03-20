@@ -13,7 +13,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
   DeployDev:
     name: Deploy to GitHub Pages (Dev)
     if: github.event_name == 'pull_request'
