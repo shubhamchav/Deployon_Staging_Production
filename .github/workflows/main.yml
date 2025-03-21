@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Staging
-      url: 'http://<STAGING_EC2_PUBLIC_IP>/index.html'
+      url: 'http://34.238.85.21/index.html'
     steps:
       - name: Setup SSH Key
         run: |
